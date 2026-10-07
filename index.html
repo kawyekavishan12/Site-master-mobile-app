@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SiteMaster - Construction Worker Attendance & Salary Manager</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+            },
+            dark: {
+              800: '#1e293b',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter & Noto Sans Sinhala -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printableArea, #printableArea * {
+        visibility: visible;
+      }
+      #printableArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: white !important;
+        color: black !important;
+        padding: 20px;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col pb-24 md:pb-6 antialiased">
+
+  <!-- TOP APP BAR -->
+  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md border-b border-amber-500/40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-amber-500 text-slate-950 p-2 rounded-xl font-black flex items-center justify-center shadow-lg shadow-amber-500/20">
+          <i data-lucide="hard-hat" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-extrabold text-lg tracking-tight text-white">SiteMaster</h1>
+            <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Site PRO</span>
+          </div>
+          <p class="text-xs text-slate-400">ඉදිබිම පැමිණීම & වැටුප් කළමනාකරණය</p>
+        </div>
+      </div>
+
+      <!-- Quick Action / Date badge -->
+      <div class="flex items-center space-x-2">
+        <button onclick="exportDataJSON()" title="Backup Data" class="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 transition">
+          <i data-lucide="download" class="w-4 h-4"></i>
+        </button>
+        <button onclick="document.getElementById('importFileInput').click()" title="Restore Backup" class="text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800/80 hover:bg-slate-800 transition">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+        </button>
+        <input type="file" id="importFileInput" class="hidden" accept=".json" onchange="importDataJSON(event)">
+        <span id="currentDateBadge" class="hidden sm:inline-block bg-slate-800 border border-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg font-medium"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-6xl mx-auto w-full px-3 sm:px-6 py-4 flex-1">
+    
+    <!-- DESKTOP NAV TABS -->
+    <nav class="hidden md:flex space-x-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
+      <button onclick="switchTab('dashboard')" class="nav-tab flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl font-medium text-sm transition" data-target="dashboard">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span>Dashboard (දළ විශ්ලේෂණය)</span>
+      </button>
+      <button onclick="switchTab('attendance')" class="nav-tab flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl font-medium text-sm transition" data-target="attendance">
+        <i data-lucide="calendar-check" class="w-4 h-4"></i>
+        <span>Attendance (දෛනික පැමිණීම)</span>
+      </button>
+      <button onclick="switchTab('salary')" class="nav-tab flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl font-medium text-sm transition" data-target="salary">
+        <i data-lucide="wallet" class="w-4 h-4"></i>
+        <span>Salary Sheet (වැටුප් වාර්තාව)</span>
+      </button>
+      <button onclick="switchTab('advances')" class="nav-tab flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl font-medium text-sm transition" data-target="advances">
+        <i data-lucide="banknote" class="w-4 h-4"></i>
+        <span>Sub / Advance (අත්තිකාරම්)</span>
+      </button>
+      <button onclick="switchTab('workers')" class="nav-tab flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-xl font-medium text-sm transition" data-target="workers">
+        <i data-lucide="users" class="w-4 h-4"></i>
+        <span>Workers (සේවක ලැයිස්තුව)</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content space-y-6">
+      <!-- Quick site status bar -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 sm:p-6 shadow-md border border-slate-700/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <span class="text-xs uppercase tracking-wider font-semibold text-amber-400">Live Site Summary</span>
+          <h2 class="text-2xl font-bold mt-0.5" id="dashTodayHeader">Today's Site Progress</h2>
+          <p class="text-slate-400 text-xs sm:text-sm mt-1">දවසේ සේවක පැමිණීම සහ වැය වූ වියදම් සාරාංශය</p>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button onclick="switchTab('attendance')" class="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 transition">
+            <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+            <span>Mark Today's Attendance</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Key Stat Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-semibold">Total Registered</span>
+            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="users" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <div class="text-2xl font-extrabold text-slate-900" id="dashTotalWorkers">0</div>
+            <span class="text-[11px] text-slate-400">ලියාපදිංචි සේවකයින්</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-semibold">Present Today</span>
+            <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="user-check" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <div class="text-2xl font-extrabold text-emerald-600" id="dashPresentToday">0</div>
+            <span class="text-[11px] text-slate-400" id="dashHalfDayNote">0 Half-days</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-semibold">Today's OT Hours</span>
+            <div class="p-2 bg-amber-50 text-amber-600 rounded-lg"><i data-lucide="clock" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <div class="text-2xl font-extrabold text-amber-600" id="dashOtToday">0h</div>
+            <span class="text-[11px] text-slate-400">අතිකාල පැය ගණන</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-semibold">Recent Advances</span>
+            <div class="p-2 bg-rose-50 text-rose-600 rounded-lg"><i data-lucide="banknote" class="w-4 h-4"></i></div>
+          </div>
+          <div>
+            <div class="text-2xl font-extrabold text-rose-600" id="dashAdvanceToday">Rs. 0</div>
+            <span class="text-[11px] text-slate-400">දුන් සබ් මුදල් (Advances)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Quick Worker Breakdown -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-amber-500"></i>
+              <span>Worker Categories (කාණ්ඩ)</span>
+            </h3>
+            <button onclick="switchTab('workers')" class="text-xs text-amber-600 font-semibold hover:underline">Manage All</button>
+          </div>
+          <div id="dashCategoriesList" class="space-y-2.5">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <!-- Today's Attendance Snapshot -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-4 h-4 text-emerald-500"></i>
+                <span>Today's On-Site Crew</span>
+              </h3>
+              <span id="dashAttendanceRate" class="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">0% Present</span>
+            </div>
+            <div id="dashPresentList" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100">
+            <button onclick="switchTab('salary')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+              <span>Calculate Weekly / Monthly Payroll</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DAILY ATTENDANCE -->
+    <section id="tab-attendance" class="tab-content hidden space-y-4">
+      <!-- Attendance Header & Date Picker -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="p-2.5 bg-amber-500/10 text-amber-600 rounded-xl">
+              <i data-lucide="calendar" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 class="font-bold text-lg text-slate-900">දෛනික පැමිණීම (Daily Attendance)</h2>
+              <p class="text-xs text-slate-500">දිනය තෝරා එක් එක් සේවකයාගේ පැමිණීම සහ OT ලකුණු කරන්න</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="shiftDate(-1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 transition" title="Previous Day">
+              <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            <input type="date" id="attendanceDateInput" onchange="renderAttendanceList()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <button onclick="shiftDate(1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 transition" title="Next Day">
+              <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+            <button onclick="setDateToday()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition">
+              Today
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick bulk actions -->
+        <div class="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500 font-medium">Quick Mark:</span>
+            <button onclick="markAllStatus('P')" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg border border-emerald-200 transition">
+              Mark All Present (සියලු දෙනාම පැමිණි)
+            </button>
+            <button onclick="markAllStatus('A')" class="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold rounded-lg border border-rose-200 transition">
+              Mark All Absent
+            </button>
+          </div>
+          <div class="text-slate-500 text-xs font-medium" id="attendanceDaySummaryText">
+            <!-- dynamic text -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance List -->
+      <div id="attendanceCardsContainer" class="space-y-3">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 3: SALARY SHEET -->
+    <section id="tab-salary" class="tab-content hidden space-y-4">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+            <i data-lucide="wallet" class="w-5 h-5 text-amber-500"></i>
+            <span>වැටුප් වාර්තාව (Payroll & Wage Summary)</span>
+          </h2>
+          <p class="text-xs text-slate-500">තෝරාගත් කාල සීමාවට වැටුප, OT සහ අඩු කල යුතු Sub (Advances) ගණනය කිරීම</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs">
+            <button onclick="setSalaryPreset('this-week')" class="salary-preset-btn px-2.5 py-1.5 rounded-lg font-medium transition active-preset" data-preset="this-week">This Week</button>
+            <button onclick="setSalaryPreset('last-week')" class="salary-preset-btn px-2.5 py-1.5 rounded-lg font-medium transition" data-preset="last-week">Last Week</button>
+            <button onclick="setSalaryPreset('this-month')" class="salary-preset-btn px-2.5 py-1.5 rounded-lg font-medium transition" data-preset="this-month">This Month</button>
+          </div>
+          
+          <div class="flex items-center gap-1">
+            <input type="date" id="salaryStartDate" onchange="calculateSalarySheet()" class="bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-xs font-medium">
+            <span class="text-slate-400 text-xs font-bold">to</span>
+            <input type="date" id="salaryEndDate" onchange="calculateSalarySheet()" class="bg-slate-50 border border-slate-300 rounded-xl px-2 py-1.5 text-xs font-medium">
+          </div>
+
+          <button onclick="printSalarySheet()" class="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition shadow">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>Print / PDF</span>
+          </button>
+          <button onclick="shareWhatsAppSummary()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition shadow">
+            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+            <span>WhatsApp Summary</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Salary Grand Summary Bar -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl">
+        <div>
+          <span class="text-[11px] text-slate-600 font-semibold uppercase">Total Days Worked</span>
+          <div class="text-xl font-black text-slate-900" id="totalWorkedDaysDisplay">0 Days</div>
+        </div>
+        <div>
+          <span class="text-[11px] text-slate-600 font-semibold uppercase">Total OT Hours</span>
+          <div class="text-xl font-black text-amber-700" id="totalOtHoursDisplay">0 Hours</div>
+        </div>
+        <div>
+          <span class="text-[11px] text-slate-600 font-semibold uppercase">Total Advances (Sub)</span>
+          <div class="text-xl font-black text-rose-600" id="totalAdvancesDeductedDisplay">Rs. 0</div>
+        </div>
+        <div>
+          <span class="text-[11px] text-slate-600 font-semibold uppercase">Total Net Payout (අතට)</span>
+          <div class="text-2xl font-black text-emerald-700" id="totalNetPayoutDisplay">Rs. 0</div>
+        </div>
+      </div>
+
+      <!-- Salary Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead class="bg-slate-900 text-slate-200 uppercase font-semibold text-[11px] tracking-wider">
+              <tr>
+                <th class="py-3 px-4">Worker</th>
+                <th class="py-3 px-3">Role</th>
+                <th class="py-3 px-3">Rate (Daily)</th>
+                <th class="py-3 px-3 text-center">Days</th>
+                <th class="py-3 px-3 text-center">OT (Hrs)</th>
+                <th class="py-3 px-3 text-right">Base Wage</th>
+                <th class="py-3 px-3 text-right">OT Pay</th>
+                <th class="py-3 px-3 text-right text-rose-300">Advance (Sub)</th>
+                <th class="py-3 px-4 text-right text-amber-400 font-bold">Net Pay (අතට)</th>
+                <th class="py-3 px-3 text-center no-print">Slip</th>
+              </tr>
+            </thead>
+            <tbody id="salaryTableBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: ADVANCES / SUB PAYMENTS -->
+    <section id="tab-advances" class="tab-content hidden space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- New Advance Form -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm md:col-span-1">
+          <div class="flex items-center space-x-2 mb-4">
+            <div class="p-2 bg-rose-50 text-rose-600 rounded-lg">
+              <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Add New Sub / Advance</h3>
+              <p class="text-xs text-slate-400">අත්තිකාරම් මුදලක් ඇතුළත් කරන්න</p>
+            </div>
+          </div>
+
+          <form id="advanceForm" onsubmit="saveAdvancePayment(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Worker (සේවකයා)</label>
+              <select id="advanceWorkerSelect" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Date (දිනය)</label>
+              <input type="date" id="advanceDate" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Amount (මුදල - LKR)</label>
+              <input type="number" id="advanceAmount" placeholder="e.g. 2000" min="50" step="50" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Reason / Note (සටහන - Optional)</label>
+              <input type="text" id="advanceNote" placeholder="e.g. කෑම වියදම් / බෙහෙත්" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            </div>
+
+            <button type="submit" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-rose-600/20 flex items-center justify-center gap-2">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>Save Advance (සබ් එක ඇතුළත් කරන්න)</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Advances List -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm md:col-span-2 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <i data-lucide="receipt" class="w-4 h-4 text-rose-500"></i>
+                <span>Recent Advances (අත්තිකාරම් ඉතිහාසය)</span>
+              </h3>
+              <span id="advancesCountBadge" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">0 records</span>
+            </div>
+
+            <div class="overflow-x-auto max-h-[460px] overflow-y-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-600 font-semibold sticky top-0">
+                  <tr>
+                    <th class="py-2.5 px-3">Date</th>
+                    <th class="py-2.5 px-3">Worker</th>
+                    <th class="py-2.5 px-3">Note</th>
+                    <th class="py-2.5 px-3 text-right">Amount (LKR)</th>
+                    <th class="py-2.5 px-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="advancesTableBody" class="divide-y divide-slate-100">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: WORKER MANAGEMENT -->
+    <section id="tab-workers" class="tab-content hidden space-y-4">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <h2 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+            <i data-lucide="users" class="w-5 h-5 text-amber-500"></i>
+            <span>සේවක ලැයිස්තුව (Worker Directory)</span>
+          </h2>
+          <p class="text-xs text-slate-500">බාස්ලා, ගෝලයින් සහ ඔවුන්ගේ දෛනික පඩි අනුපාත ලියාපදිංචි කිරීම</p>
+        </div>
+
+        <button onclick="openWorkerModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-2 shadow-lg shadow-amber-500/20 transition">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          <span>Add New Worker (+ සේවකයෙක් එක්කරන්න)</span>
+        </button>
+      </div>
+
+      <!-- Workers Cards Grid -->
+      <div id="workersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM MOBILE NAVIGATION BAR -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-40 px-2 py-1.5 flex justify-around items-center text-slate-400">
+    <button onclick="switchTab('dashboard')" class="mobile-nav-btn flex flex-col items-center py-1 px-2 text-[10px] font-medium" data-target="dashboard">
+      <i data-lucide="layout-dashboard" class="w-5 h-5 mb-0.5"></i>
+      <span>Home</span>
+    </button>
+    <button onclick="switchTab('attendance')" class="mobile-nav-btn flex flex-col items-center py-1 px-2 text-[10px] font-medium" data-target="attendance">
+      <i data-lucide="calendar-check" class="w-5 h-5 mb-0.5"></i>
+      <span>Attend</span>
+    </button>
+    <button onclick="switchTab('salary')" class="mobile-nav-btn flex flex-col items-center py-1 px-2 text-[10px] font-medium" data-target="salary">
+      <i data-lucide="wallet" class="w-5 h-5 mb-0.5"></i>
+      <span>Salary</span>
+    </button>
+    <button onclick="switchTab('advances')" class="mobile-nav-btn flex flex-col items-center py-1 px-2 text-[10px] font-medium" data-target="advances">
+      <i data-lucide="banknote" class="w-5 h-5 mb-0.5"></i>
+      <span>Sub</span>
+    </button>
+    <button onclick="switchTab('workers')" class="mobile-nav-btn flex flex-col items-center py-1 px-2 text-[10px] font-medium" data-target="workers">
+      <i data-lucide="users" class="w-5 h-5 mb-0.5"></i>
+      <span>Workers</span>
+    </button>
+  </nav>
+
+  <!-- MODAL: ADD / EDIT WORKER -->
+  <div id="workerModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="workerModalTitle" class="font-extrabold text-base text-slate-900">Add New Worker</h3>
+        <button onclick="closeWorkerModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="workerForm" onsubmit="saveWorker(event)" class="space-y-3.5">
+        <input type="hidden" id="workerId">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name (සම්පූර්ණ නම) *</label>
+          <input type="text" id="workerName" required placeholder="e.g. Sunil Perera" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Phone (දුරකථන අංකය)</label>
+            <input type="tel" id="workerPhone" placeholder="0771234567" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">NIC / ID</label>
+            <input type="text" id="workerNic" placeholder="199212345678" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Category / Trade (කාණ්ඩය) *</label>
+          <select id="workerRole" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <option value="Mason">Mason (මේසන් බාස්)</option>
+            <option value="Helper">Helper (ගෝලයා / Labourer)</option>
+            <option value="Carpenter">Carpenter (වඩුවා)</option>
+            <option value="Steel Fixer">Steel Fixer (යකඩ බාස්)</option>
+            <option value="Painter">Painter (පේන්ටර්)</option>
+            <option value="Plumber">Plumber (නල කාර්මික)</option>
+            <option value="Electrician">Electrician (විදුලි කාර්මික)</option>
+            <option value="Tile Layer">Tile Layer (ටයිල් බාස්)</option>
+            <option value="Supervisor">Supervisor (සුපවයිසර්)</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Daily Rate (දෛනික වැටුප LKR) *</label>
+            <input type="number" id="workerDailyRate" min="0" step="50" required placeholder="4500" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none" oninput="autoSuggestOtRate()">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">OT Rate / Hour (පැයකට LKR) *</label>
+            <input type="number" id="workerOtRate" min="0" step="10" required placeholder="600" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-amber-700 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeWorkerModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition shadow">Save Worker</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: WORKER PAYSLIP (PRINTABLE) -->
+  <div id="payslipModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div id="printableSlipContent">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end gap-2 no-print">
+        <button onclick="document.getElementById('payslipModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Close</button>
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow">
+          <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+          <span>Print Slip</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HIDDEN PRINT AREA FOR FULL REPORT -->
+  <div id="printableArea" class="hidden"></div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // DATA MODEL & LOCALSTORAGE KEYS
+    const STORAGE_KEY_WORKERS = 'sitemaster_workers_v1';
+    const STORAGE_KEY_ATTENDANCE = 'sitemaster_attendance_v1';
+    const STORAGE_KEY_ADVANCES = 'sitemaster_advances_v1';
+
+    // DEFAULT DEMO DATA FOR EASY FIRST-RUN EXPERIENCE
+    const DEFAULT_WORKERS = [
+      { id: 'w1', name: 'සුනිමල් පෙරේරා (Sunimal)', phone: '0773456781', nic: '851234567V', role: 'Mason', dailyRate: 4500, otRate: 600, active: true },
+      { id: 'w2', name: 'චමින්ද කුමාර (Chaminda)', phone: '0718923451', nic: '921567890V', role: 'Helper', dailyRate: 3000, otRate: 400, active: true },
+      { id: 'w3', name: 'කමල් ජයසිංහ (Kamal)', phone: '0754432123', nic: '887654321V', role: 'Carpenter', dailyRate: 4200, otRate: 550, active: true },
+      { id: 'w4', name: 'ප්‍රදීප් රොෂාන් (Pradeep)', phone: '0761122334', nic: '951239876V', role: 'Steel Fixer', dailyRate: 4500, otRate: 600, active: true },
+      { id: 'w5', name: 'රුවන් බණ්ඩාර (Ruwan)', phone: '0709988776', nic: '986543210V', role: 'Helper', dailyRate: 3000, otRate: 400, active: true }
+    ];
+
+    // State
+    let workers = [];
+    let attendance = {}; // Format: { "YYYY-MM-DD": { workerId: { status: 'P'|'H'|'A', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' } } }
+    let advances = [];   // Array of { id, workerId, date, amount, note }
+    let currentTab = 'dashboard';
+    let selectedAttendanceDate = new Date().toISOString().split('T')[0];
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      setupDates();
+      renderAll();
+      lucide.createIcons();
+    });
+
+    function loadData() {
+      const storedWorkers = localStorage.getItem(STORAGE_KEY_WORKERS);
+      const storedAttendance = localStorage.getItem(STORAGE_KEY_ATTENDANCE);
+      const storedAdvances = localStorage.getItem(STORAGE_KEY_ADVANCES);
+
+      if (storedWorkers) {
+        workers = JSON.parse(storedWorkers);
+      } else {
+        workers = DEFAULT_WORKERS;
+        saveWorkers();
+      }
+
+      attendance = storedAttendance ? JSON.parse(storedAttendance) : {};
+      advances = storedAdvances ? JSON.parse(storedAdvances) : [];
+
+      // If no attendance exists for today, pre-fill sample for today so user sees it working
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (!attendance[todayStr] && workers.length > 0) {
+        attendance[todayStr] = {
+          'w1': { status: 'P', inTime: '08:00', outTime: '18:00', otHours: 1, note: '' },
+          'w2': { status: 'P', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' },
+          'w3': { status: 'H', inTime: '08:00', outTime: '12:30', otHours: 0, note: 'හවස වැස්ස නිසා ගියා' },
+          'w4': { status: 'P', inTime: '08:00', outTime: '19:00', otHours: 2, note: '' },
+          'w5': { status: 'A', inTime: '', outTime: '', otHours: 0, note: 'ලෙඩ නිවාඩු' }
+        };
+        saveAttendance();
+      }
+
+      // Pre-fill demo advance if empty
+      if (advances.length === 0) {
+        advances = [
+          { id: 'adv1', workerId: 'w2', date: todayStr, amount: 1500, note: 'කෑම සහ ගමන් වියදම්' }
+        ];
+        saveAdvances();
+      }
+    }
+
+    function saveWorkers() {
+      localStorage.setItem(STORAGE_KEY_WORKERS, JSON.stringify(workers));
+    }
+    function saveAttendance() {
+      localStorage.setItem(STORAGE_KEY_ATTENDANCE, JSON.stringify(attendance));
+    }
+    function saveAdvances() {
+      localStorage.setItem(STORAGE_KEY_ADVANCES, JSON.stringify(advances));
+    }
+
+    function setupDates() {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      const dateBadge = document.getElementById('currentDateBadge');
+      if (dateBadge) {
+        dateBadge.textContent = today.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      }
+
+      const attDateInput = document.getElementById('attendanceDateInput');
+      if (attDateInput) {
+        attDateInput.value = todayStr;
+        selectedAttendanceDate = todayStr;
+      }
+
+      const advDate = document.getElementById('advanceDate');
+      if (advDate) {
+        advDate.value = todayStr;
+      }
+
+      // Default Salary Date range: Monday to Today of current week
+      setSalaryPreset('this-week');
+    }
+
+    function renderAll() {
+      renderDashboard();
+      renderAttendanceList();
+      renderSalaryWorkerSelect();
+      renderAdvancesTable();
+      renderWorkersGrid();
+      calculateSalarySheet();
+      lucide.createIcons();
+    }
+
+    // TAB NAVIGATION
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      const activeContent = document.getElementById('tab-' + tabId);
+      if (activeContent) activeContent.classList.remove('hidden');
+
+      // Update Desktop tabs
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        if (btn.dataset.target === tabId) {
+          btn.classList.add('bg-slate-900', 'text-white', 'shadow-sm');
+          btn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+        } else {
+          btn.classList.remove('bg-slate-900', 'text-white', 'shadow-sm');
+          btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+        }
+      });
+
+      // Update Mobile tabs
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        if (btn.dataset.target === tabId) {
+          btn.classList.add('text-amber-400');
+          btn.classList.remove('text-slate-400');
+        } else {
+          btn.classList.remove('text-amber-400');
+          btn.classList.add('text-slate-400');
+        }
+      });
+
+      if (tabId === 'dashboard') renderDashboard();
+      if (tabId === 'attendance') renderAttendanceList();
+      if (tabId === 'salary') calculateSalarySheet();
+      if (tabId === 'advances') renderAdvancesTable();
+      if (tabId === 'workers') renderWorkersGrid();
+
+      lucide.createIcons();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // DASHBOARD RENDERING
+    function renderDashboard() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayRecord = attendance[todayStr] || {};
+      
+      let presentCount = 0;
+      let halfDayCount = 0;
+      let totalOtHours = 0;
+
+      const activeWorkers = workers.filter(w => w.active);
+      document.getElementById('dashTotalWorkers').textContent = activeWorkers.length;
+
+      const presentListHtml = [];
+
+      activeWorkers.forEach(w => {
+        const att = todayRecord[w.id];
+        if (att) {
+          if (att.status === 'P') presentCount++;
+          if (att.status === 'H') halfDayCount++;
+          if (att.otHours) totalOtHours += parseFloat(att.otHours) || 0;
+
+          if (att.status === 'P' || att.status === 'H') {
+            presentListHtml.push(`
+              <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full ${att.status === 'P' ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+                  <span class="font-bold text-slate-800">${escapeHtml(w.name)}</span>
+                  <span class="text-[10px] text-slate-400 font-medium">${w.role}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  ${att.otHours > 0 ? `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[10px]">+${att.otHours}h OT</span>` : ''}
+                  <span class="font-bold ${att.status === 'P' ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'} px-2 py-0.5 rounded text-[10px]">
+                    ${att.status === 'P' ? 'Full Day' : '1/2 Day'}
+                  </span>
+                </div>
+              </div>
+            `);
+          }
+        }
+      });
+
+      document.getElementById('dashPresentToday').textContent = presentCount + (halfDayCount > 0 ? ` + ${halfDayCount} (½)` : '');
+      document.getElementById('dashHalfDayNote').textContent = `${halfDayCount} Half-day(s)`;
+      document.getElementById('dashOtToday').textContent = `${totalOtHours}h`;
+
+      // Advances today
+      const todayAdvancesTotal = advances
+        .filter(a => a.date === todayStr)
+        .reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+      document.getElementById('dashAdvanceToday').textContent = `Rs. ${todayAdvancesTotal.toLocaleString()}`;
+
+      // Attendance % badge
+      const totalWorkersCount = activeWorkers.length;
+      const rate = totalWorkersCount > 0 ? Math.round(((presentCount + (halfDayCount * 0.5)) / totalWorkersCount) * 100) : 0;
+      document.getElementById('dashAttendanceRate').textContent = `${rate}% Present`;
+
+      // Render present list
+      const presentContainer = document.getElementById('dashPresentList');
+      if (presentListHtml.length > 0) {
+        presentContainer.innerHTML = presentListHtml.join('');
+      } else {
+        presentContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">අද දින පැමිණීම තවමත් සටහන් කර නැත.<br><button onclick="switchTab('attendance')" class="text-amber-600 font-bold hover:underline mt-1">දැන්ම ලකුණු කරන්න</button></div>`;
+      }
+
+      // Categories Breakdown
+      const categoryCounts = {};
+      activeWorkers.forEach(w => {
+        categoryCounts[w.role] = (categoryCounts[w.role] || 0) + 1;
+      });
+
+      const catHtml = Object.keys(categoryCounts).map(role => `
+        <div class="flex items-center justify-between text-xs py-1 border-b border-slate-50 last:border-0">
+          <span class="text-slate-600 font-medium">${role}</span>
+          <span class="bg-slate-100 text-slate-800 font-bold px-2.5 py-0.5 rounded-full">${categoryCounts[role]} workers</span>
+        </div>
+      `).join('');
+      document.getElementById('dashCategoriesList').innerHTML = catHtml || '<p class="text-xs text-slate-400">No workers yet</p>';
+    }
+
+    // ATTENDANCE TAB
+    function shiftDate(offset) {
+      const cur = new Date(selectedAttendanceDate);
+      cur.setDate(cur.getDate() + offset);
+      selectedAttendanceDate = cur.toISOString().split('T')[0];
+      document.getElementById('attendanceDateInput').value = selectedAttendanceDate;
+      renderAttendanceList();
+    }
+
+    function setDateToday() {
+      selectedAttendanceDate = new Date().toISOString().split('T')[0];
+      document.getElementById('attendanceDateInput').value = selectedAttendanceDate;
+      renderAttendanceList();
+    }
+
+    function renderAttendanceList() {
+      selectedAttendanceDate = document.getElementById('attendanceDateInput').value;
+      const dateRecord = attendance[selectedAttendanceDate] || {};
+      const container = document.getElementById('attendanceCardsContainer');
+      const activeWorkers = workers.filter(w => w.active);
+
+      if (activeWorkers.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white p-8 rounded-2xl text-center border border-slate-200">
+            <p class="text-slate-500 text-sm font-medium">කිසිදු සේවකයෙක් ලියාපදිංචි කර නැත.</p>
+            <button onclick="openWorkerModal()" class="mt-3 bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">Add First Worker</button>
+          </div>
+        `;
+        return;
+      }
+
+      let pCount = 0, hCount = 0, aCount = 0, otCount = 0;
+
+      const html = activeWorkers.map(w => {
+        const att = dateRecord[w.id] || { status: 'P', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' };
+        if (att.status === 'P') pCount++;
+        else if (att.status === 'H') hCount++;
+        else if (att.status === 'A') aCount++;
+        if (att.otHours) otCount += parseFloat(att.otHours) || 0;
+
+        return `
+          <div class="bg-white rounded-2xl p-4 border ${att.status === 'P' ? 'border-emerald-200 shadow-sm' : att.status === 'H' ? 'border-amber-200' : 'border-rose-200 bg-rose-50/20'} transition">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <!-- Worker Info -->
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl font-bold flex items-center justify-center text-sm shadow-sm
+                  ${att.status === 'P' ? 'bg-emerald-100 text-emerald-800' : att.status === 'H' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">
+                  ${w.name.substring(0, 1)}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-extrabold text-slate-900 text-sm sm:text-base">${escapeHtml(w.name)}</h4>
+                    <span class="text-[11px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded">${w.role}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                    <span>Rate: Rs. ${w.dailyRate.toLocaleString()}/day</span>
+                    <span>•</span>
+                    <span>OT: Rs. ${w.otRate}/hr</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status Buttons (P / H / A) -->
+              <div class="flex items-center gap-1.5 self-start sm:self-center">
+                <button onclick="setWorkerStatus('${w.id}', 'P')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1
+                  ${att.status === 'P' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-2 ring-emerald-600 ring-offset-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>Present (සම්පූර්ණ)</span>
+                </button>
+                <button onclick="setWorkerStatus('${w.id}', 'H')" class="px-3 py-1.5 rounded-xl font-bold text-xs transition
+                  ${att.status === 'H' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 ring-2 ring-amber-500 ring-offset-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                  <span>½ Half-Day</span>
+                </button>
+                <button onclick="setWorkerStatus('${w.id}', 'A')" class="px-3 py-1.5 rounded-xl font-bold text-xs transition
+                  ${att.status === 'A' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-600 ring-offset-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                  <span>Absent</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Overtime and In/Out Details (Collapsed if Absent) -->
+            ${att.status !== 'A' ? `
+              <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <!-- OT Control -->
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-slate-700">OT Hours (අතිකාල):</span>
+                  <div class="flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
+                    <button onclick="adjustWorkerOt('${w.id}', -0.5)" class="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-white rounded-lg transition">-</button>
+                    <input type="number" step="0.5" min="0" max="24" value="${att.otHours || 0}" onchange="updateWorkerOtDirect('${w.id}', this.value)" class="w-12 text-center bg-transparent font-extrabold text-amber-700 focus:outline-none text-xs">
+                    <button onclick="adjustWorkerOt('${w.id}', 0.5)" class="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-white rounded-lg transition">+</button>
+                  </div>
+                  <span class="text-[11px] text-slate-400 font-medium">hrs (Rs. ${(att.otHours * w.otRate).toLocaleString()})</span>
+                </div>
+
+                <!-- Note input -->
+                <div class="flex-1 min-w-[200px]">
+                  <input type="text" placeholder="සටහනක් (Note) - e.g. උදේ 9ට ආවේ" value="${escapeHtml(att.note || '')}" onchange="updateWorkerAttNote('${w.id}', this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = html;
+      document.getElementById('attendanceDaySummaryText').textContent = `Summary: ${pCount} Present, ${hCount} Half-Day, ${aCount} Absent | Total OT: ${otCount} hrs`;
+      lucide.createIcons();
+    }
+
+    function setWorkerStatus(workerId, status) {
+      if (!attendance[selectedAttendanceDate]) {
+        attendance[selectedAttendanceDate] = {};
+      }
+      if (!attendance[selectedAttendanceDate][workerId]) {
+        attendance[selectedAttendanceDate][workerId] = { status: 'P', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' };
+      }
+      attendance[selectedAttendanceDate][workerId].status = status;
+      if (status === 'A') {
+        attendance[selectedAttendanceDate][workerId].otHours = 0;
+      }
+      saveAttendance();
+      renderAttendanceList();
+      renderDashboard();
+    }
+
+    function adjustWorkerOt(workerId, delta) {
+      if (!attendance[selectedAttendanceDate]) attendance[selectedAttendanceDate] = {};
+      if (!attendance[selectedAttendanceDate][workerId]) {
+        attendance[selectedAttendanceDate][workerId] = { status: 'P', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' };
+      }
+      let current = parseFloat(attendance[selectedAttendanceDate][workerId].otHours) || 0;
+      current = Math.max(0, current + delta);
+      attendance[selectedAttendanceDate][workerId].otHours = current;
+      saveAttendance();
+      renderAttendanceList();
+      renderDashboard();
+    }
+
+    function updateWorkerOtDirect(workerId, val) {
+      if (!attendance[selectedAttendanceDate]) attendance[selectedAttendanceDate] = {};
+      if (!attendance[selectedAttendanceDate][workerId]) {
+        attendance[selectedAttendanceDate][workerId] = { status: 'P', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' };
+      }
+      attendance[selectedAttendanceDate][workerId].otHours = Math.max(0, parseFloat(val) || 0);
+      saveAttendance();
+      renderAttendanceList();
+      renderDashboard();
+    }
+
+    function updateWorkerAttNote(workerId, note) {
+      if (!attendance[selectedAttendanceDate]) attendance[selectedAttendanceDate] = {};
+      if (!attendance[selectedAttendanceDate][workerId]) {
+        attendance[selectedAttendanceDate][workerId] = { status: 'P', inTime: '08:00', outTime: '17:00', otHours: 0, note: '' };
+      }
+      attendance[selectedAttendanceDate][workerId].note = note;
+      saveAttendance();
+    }
+
+    function markAllStatus(status) {
+      if (!attendance[selectedAttendanceDate]) attendance[selectedAttendanceDate] = {};
+      workers.filter(w => w.active).forEach(w => {
+        if (!attendance[selectedAttendanceDate][w.id]) {
+          attendance[selectedAttendanceDate][w.id] = { status: status, inTime: '08:00', outTime: '17:00', otHours: 0, note: '' };
+        } else {
+          attendance[selectedAttendanceDate][w.id].status = status;
+          if (status === 'A') attendance[selectedAttendanceDate][w.id].otHours = 0;
+        }
+      });
+      saveAttendance();
+      renderAttendanceList();
+      renderDashboard();
+    }
+
+    // SALARY & PAYROLL CALCULATIONS
+    function setSalaryPreset(preset) {
+      const today = new Date();
+      let start = new Date(today);
+      let end = new Date(today);
+
+      if (preset === 'this-week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        start.setDate(diff);
+      } else if (preset === 'last-week') {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1) - 7;
+        start.setDate(diff);
+        end.setDate(diff + 6);
+      } else if (preset === 'this-month') {
+        start.setDate(1);
+      }
+
+      document.getElementById('salaryStartDate').value = start.toISOString().split('T')[0];
+      document.getElementById('salaryEndDate').value = end.toISOString().split('T')[0];
+
+      document.querySelectorAll('.salary-preset-btn').forEach(b => {
+        if (b.dataset.preset === preset) {
+          b.classList.add('bg-white', 'text-slate-900', 'font-bold', 'shadow-sm');
+          b.classList.remove('text-slate-600');
+        } else {
+          b.classList.remove('bg-white', 'text-slate-900', 'font-bold', 'shadow-sm');
+          b.classList.add('text-slate-600');
+        }
+      });
+
+      calculateSalarySheet();
+    }
+
+    function calculateSalarySheet() {
+      const startDateStr = document.getElementById('salaryStartDate').value;
+      const endDateStr = document.getElementById('salaryEndDate').value;
+
+      if (!startDateStr || !endDateStr) return;
+
+      const startDate = new Date(startDateStr);
+      const endDate = new Date(endDateStr);
+
+      const tableBody = document.getElementById('salaryTableBody');
+      const activeWorkers = workers.filter(w => w.active);
+
+      let grandTotalDays = 0;
+      let grandTotalOt = 0;
+      let grandTotalAdvances = 0;
+      let grandTotalNet = 0;
+
+      const rows = activeWorkers.map(w => {
+        let workedDays = 0;
+        let totalOt = 0;
+
+        // Iterate through dates in range
+        let cur = new Date(startDate);
+        while (cur <= endDate) {
+          const dateStr = cur.toISOString().split('T')[0];
+          const dayRecord = attendance[dateStr];
+          if (dayRecord && dayRecord[w.id]) {
+            const att = dayRecord[w.id];
+            if (att.status === 'P') workedDays += 1;
+            else if (att.status === 'H') workedDays += 0.5;
+            if (att.otHours) totalOt += parseFloat(att.otHours) || 0;
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+
+        // Calculate advances in range
+        const workerAdvances = advances
+          .filter(a => a.workerId === w.id && a.date >= startDateStr && a.date <= endDateStr)
+          .reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+
+        const baseWage = workedDays * w.dailyRate;
+        const otWage = totalOt * w.otRate;
+        const grossWage = baseWage + otWage;
+        const netWage = Math.max(0, grossWage - workerAdvances);
+
+        grandTotalDays += workedDays;
+        grandTotalOt += totalOt;
+        grandTotalAdvances += workerAdvances;
+        grandTotalNet += netWage;
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4 font-bold text-slate-900">
+              ${escapeHtml(w.name)}
+              <div class="text-[11px] text-slate-400 font-normal sm:hidden">${w.role} | Rs. ${w.dailyRate}</div>
+            </td>
+            <td class="py-3 px-3 hidden sm:table-cell text-slate-600">${w.role}</td>
+            <td class="py-3 px-3 hidden sm:table-cell text-slate-600">Rs. ${w.dailyRate.toLocaleString()}</td>
+            <td class="py-3 px-3 text-center font-semibold ${workedDays > 0 ? 'text-slate-900' : 'text-slate-400'}">${workedDays}</td>
+            <td class="py-3 px-3 text-center font-semibold text-amber-700">${totalOt > 0 ? totalOt + 'h' : '-'}</td>
+            <td class="py-3 px-3 text-right font-medium text-slate-700">Rs. ${baseWage.toLocaleString()}</td>
+            <td class="py-3 px-3 text-right font-medium text-amber-700">Rs. ${otWage.toLocaleString()}</td>
+            <td class="py-3 px-3 text-right font-bold text-rose-600">Rs. ${workerAdvances.toLocaleString()}</td>
+            <td class="py-3 px-4 text-right font-black text-emerald-700 text-sm">Rs. ${netWage.toLocaleString()}</td>
+            <td class="py-3 px-3 text-center no-print">
+              <button onclick="viewSingleWorkerPayslip('${w.id}', ${workedDays}, ${totalOt}, ${baseWage}, ${otWage}, ${workerAdvances}, ${netWage})" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition" title="Print Slip">
+                <i data-lucide="receipt" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tableBody.innerHTML = rows || `<tr><td colspan="10" class="text-center py-6 text-slate-400">No worker records</td></tr>`;
+
+      document.getElementById('totalWorkedDaysDisplay').textContent = `${grandTotalDays} Days`;
+      document.getElementById('totalOtHoursDisplay').textContent = `${grandTotalOt} Hours`;
+      document.getElementById('totalAdvancesDeductedDisplay').textContent = `Rs. ${grandTotalAdvances.toLocaleString()}`;
+      document.getElementById('totalNetPayoutDisplay').textContent = `Rs. ${grandTotalNet.toLocaleString()}`;
+
+      lucide.createIcons();
+    }
+
+    function viewSingleWorkerPayslip(workerId, days, ot, base, otPay, adv, net) {
+      const w = workers.find(item => item.id === workerId);
+      if (!w) return;
+
+      const startDateStr = document.getElementById('salaryStartDate').value;
+      const endDateStr = document.getElementById('salaryEndDate').value;
+
+      const slipHtml = `
+        <div class="border-2 border-slate-900 p-5 rounded-xl bg-white text-slate-900 font-sans">
+          <div class="flex justify-between items-start border-b-2 border-slate-900 pb-3 mb-4">
+            <div>
+              <h2 class="text-xl font-black uppercase tracking-tight">CONSTRUCTION SITE PAYSLIP</h2>
+              <p class="text-xs text-slate-600">වැටුප් පත්‍රිකාව</p>
+            </div>
+            <div class="text-right text-xs">
+              <div class="font-bold text-amber-600">SiteMaster Pro</div>
+              <div class="text-slate-500">Period: ${startDateStr} to ${endDateStr}</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 text-xs mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div><span class="text-slate-500">Worker Name:</span> <strong class="block text-sm">${escapeHtml(w.name)}</strong></div>
+            <div><span class="text-slate-500">Trade / Role:</span> <strong class="block text-sm">${w.role}</strong></div>
+            <div><span class="text-slate-500">Daily Rate:</span> <strong>Rs. ${w.dailyRate.toLocaleString()}</strong></div>
+            <div><span class="text-slate-500">Phone:</span> <strong>${w.phone || '-'}</strong></div>
+          </div>
+
+          <table class="w-full text-xs mb-4">
+            <tr class="border-b border-slate-200 py-1.5 flex justify-between">
+              <td class="text-slate-600">Worked Days (${days} Days × Rs. ${w.dailyRate})</td>
+              <td class="font-bold text-right">Rs. ${base.toLocaleString()}</td>
+            </tr>
+            <tr class="border-b border-slate-200 py-1.5 flex justify-between">
+              <td class="text-slate-600">Overtime Pay (${ot} Hours × Rs. ${w.otRate})</td>
+              <td class="font-bold text-right text-amber-700">Rs. ${otPay.toLocaleString()}</td>
+            </tr>
+            <tr class="border-b-2 border-slate-900 py-1.5 flex justify-between font-bold text-slate-800">
+              <td>Gross Total (මුළු වැටුප)</td>
+              <td class="text-right">Rs. ${(base + otPay).toLocaleString()}</td>
+            </tr>
+            <tr class="border-b border-rose-200 py-1.5 flex justify-between text-rose-600 font-semibold">
+              <td>Less: Sub / Cash Advances (අඩු කළ අත්තිකාරම්)</td>
+              <td class="text-right">- Rs. ${adv.toLocaleString()}</td>
+            </tr>
+          </table>
+
+          <div class="bg-slate-900 text-white p-3 rounded-xl flex justify-between items-center mb-6">
+            <span class="text-xs uppercase font-bold tracking-wider text-amber-400">Net Payable (අතට දෙන මුදල):</span>
+            <span class="text-xl font-black">Rs. ${net.toLocaleString()}</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-8 text-[11px] text-center pt-6 text-slate-500 border-t border-slate-200">
+            <div>
+              <div class="border-b border-slate-400 mb-1 h-8"></div>
+              <span>Site Engineer / Supervisor Signature</span>
+            </div>
+            <div>
+              <div class="border-b border-slate-400 mb-1 h-8"></div>
+              <span>Worker Signature (ලබාගත් බවට අත්සන)</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('printableSlipContent').innerHTML = slipHtml;
+      document.getElementById('payslipModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function printSalarySheet() {
+      const startDateStr = document.getElementById('salaryStartDate').value;
+      const endDateStr = document.getElementById('salaryEndDate').value;
+      const printArea = document.getElementById('printableArea');
+
+      printArea.innerHTML = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 4px;">CONSTRUCTION SITE PAYROLL SHEET</h2>
+          <p style="font-size: 13px; color: #555; margin-bottom: 16px;">Period: ${startDateStr} to ${endDateStr} | Generated by SiteMaster</p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+            <thead>
+              <tr style="background: #222; color: #fff;">
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Worker</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Role</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Daily Rate</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Days</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">OT (Hrs)</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Base Pay</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">OT Pay</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Advances (Sub)</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Net Pay</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">Signature</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Array.from(document.querySelectorAll('#salaryTableBody tr')).map(tr => {
+                const tds = tr.querySelectorAll('td');
+                if (tds.length < 9) return '';
+                return `
+                  <tr>
+                    <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold;">${tds[0].innerText.split('\n')[0]}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd;">${tds[1].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${tds[2].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${tds[3].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${tds[4].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${tds[5].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${tds[6].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right; color: red;">${tds[7].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; text-align: right; font-weight: bold;">${tds[8].innerText}</td>
+                    <td style="padding: 6px; border: 1px solid #ddd; width: 100px;"></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+          <div style="font-size: 14px; font-weight: bold; text-align: right; margin-top: 10px;">
+            Total Payout: ${document.getElementById('totalNetPayoutDisplay').innerText}
+          </div>
+        </div>
+      `;
+      printArea.classList.remove('hidden');
+      window.print();
+      printArea.classList.add('hidden');
+    }
+
+    function shareWhatsAppSummary() {
+      const startDateStr = document.getElementById('salaryStartDate').value;
+      const endDateStr = document.getElementById('salaryEndDate').value;
+      const totalNet = document.getElementById('totalNetPayoutDisplay').textContent;
+      const totalDays = document.getElementById('totalWorkedDaysDisplay').textContent;
+      const totalOt = document.getElementById('totalOtHoursDisplay').textContent;
+
+      let msg = `🏗️ *SITE PAYROLL SUMMARY*\n📅 Period: ${startDateStr} to ${endDateStr}\n\n`;
+      msg += `👷 *Workers Summary:*\n`;
+
+      const rows = document.querySelectorAll('#salaryTableBody tr');
+      rows.forEach(tr => {
+        const tds = tr.querySelectorAll('td');
+        if (tds.length >= 9) {
+          const name = tds[0].innerText.split('\n')[0];
+          const days = tds[3].innerText;
+          const ot = tds[4].innerText;
+          const net = tds[8].innerText;
+          msg += `• *${name}*: ${days}d | ${ot} OT => *${net}*\n`;
+        }
+      });
+
+      msg += `\n-------------------------\n`;
+      msg += `📊 Total Days: ${totalDays}\n`;
+      msg += `⏱️ Total OT: ${totalOt}\n`;
+      msg += `💰 *TOTAL PAYOUT: ${totalNet}*\n`;
+      msg += `_Generated via SiteMaster_`;
+
+      const encoded = encodeURI(msg);
+      window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+    }
+
+    // ADVANCES TAB
+    function renderSalaryWorkerSelect() {
+      const select = document.getElementById('advanceWorkerSelect');
+      if (!select) return;
+      const activeWorkers = workers.filter(w => w.active);
+      select.innerHTML = activeWorkers.map(w => `
+        <option value="${w.id}">${escapeHtml(w.name)} (${w.role})</option>
+      `).join('');
+    }
+
+    function saveAdvancePayment(e) {
+      e.preventDefault();
+      const workerId = document.getElementById('advanceWorkerSelect').value;
+      const date = document.getElementById('advanceDate').value;
+      const amount = parseFloat(document.getElementById('advanceAmount').value);
+      const note = document.getElementById('advanceNote').value.trim();
+
+      if (!workerId || !date || !amount) return;
+
+      const newAdvance = {
+        id: 'adv_' + Date.now(),
+        workerId,
+        date,
+        amount,
+        note
+      };
+
+      advances.unshift(newAdvance);
+      saveAdvances();
+      document.getElementById('advanceForm').reset();
+      document.getElementById('advanceDate').value = new Date().toISOString().split('T')[0];
+      
+      renderAdvancesTable();
+      renderDashboard();
+      calculateSalarySheet();
+      alert('Advance payment recorded successfully! (අත්තිකාරම් මුදල සටහන් විය)');
+    }
+
+    function renderAdvancesTable() {
+      const tbody = document.getElementById('advancesTableBody');
+      const badge = document.getElementById('advancesCountBadge');
+      if (badge) badge.textContent = `${advances.length} records`;
+
+      if (advances.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">කිසිදු අත්තිකාරම් (Sub) මුදලක් සටහන් කර නැත.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = advances.map(adv => {
+        const worker = workers.find(w => w.id === adv.workerId);
+        const workerName = worker ? worker.name : 'Unknown Worker';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2.5 px-3 text-slate-600 font-medium">${adv.date}</td>
+            <td class="py-2.5 px-3 font-bold text-slate-900">${escapeHtml(workerName)}</td>
+            <td class="py-2.5 px-3 text-slate-500">${escapeHtml(adv.note || '-')}</td>
+            <td class="py-2.5 px-3 text-right font-extrabold text-rose-600">Rs. ${parseFloat(adv.amount).toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button onclick="deleteAdvance('${adv.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded transition" title="Delete">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function deleteAdvance(advId) {
+      if (confirm('Are you sure you want to delete this advance record? (මෙම සබ් මුදල් සටහන ඉවත් කරන්නද?)')) {
+        advances = advances.filter(a => a.id !== advId);
+        saveAdvances();
+        renderAdvancesTable();
+        renderDashboard();
+        calculateSalarySheet();
+      }
+    }
+
+    // WORKERS MANAGEMENT
+    function renderWorkersGrid() {
+      const grid = document.getElementById('workersGrid');
+      const activeWorkers = workers.filter(w => w.active);
+
+      if (activeWorkers.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-white p-8 rounded-2xl text-center border border-slate-200">
+            <p class="text-slate-500 text-sm">සේවකයින් කිසිවෙකු ලියාපදිංචි කර නැත.</p>
+            <button onclick="openWorkerModal()" class="mt-3 bg-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">Add First Worker</button>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = activeWorkers.map(w => `
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
+          <div>
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-900 text-amber-400 font-extrabold flex items-center justify-center text-sm shadow">
+                  ${w.name.substring(0, 1)}
+                </div>
+                <div>
+                  <h4 class="font-extrabold text-slate-900 text-sm sm:text-base leading-tight">${escapeHtml(w.name)}</h4>
+                  <span class="inline-block mt-0.5 text-[11px] bg-amber-50 text-amber-800 border border-amber-200/60 font-semibold px-2 py-0.5 rounded-md">${w.role}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="editWorker('${w.id}')" class="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition" title="Edit">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteWorker('${w.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition" title="Delete">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-1.5 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2">
+              <div class="flex justify-between">
+                <span class="text-slate-500">Daily Rate (දවසක පඩිය):</span>
+                <span class="font-bold text-slate-900">Rs. ${w.dailyRate.toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">OT Rate / Hour:</span>
+                <span class="font-bold text-amber-700">Rs. ${w.otRate.toLocaleString()}</span>
+              </div>
+              ${w.phone ? `
+                <div class="flex justify-between pt-1 border-t border-slate-200/60">
+                  <span class="text-slate-500">Phone:</span>
+                  <a href="tel:${w.phone}" class="font-medium text-blue-600 hover:underline flex items-center gap-1">
+                    <i data-lucide="phone" class="w-3 h-3"></i>
+                    <span>${w.phone}</span>
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function openWorkerModal(worker = null) {
+      const modal = document.getElementById('workerModal');
+      const form = document.getElementById('workerForm');
+      form.reset();
+
+      if (worker) {
+        document.getElementById('workerModalTitle').textContent = 'Edit Worker (සේවක තොරතුරු සංශෝධනය)';
+        document.getElementById('workerId').value = worker.id;
+        document.getElementById('workerName').value = worker.name;
+        document.getElementById('workerPhone').value = worker.phone || '';
+        document.getElementById('workerNic').value = worker.nic || '';
+        document.getElementById('workerRole').value = worker.role;
+        document.getElementById('workerDailyRate').value = worker.dailyRate;
+        document.getElementById('workerOtRate').value = worker.otRate;
+      } else {
+        document.getElementById('workerModalTitle').textContent = 'Add New Worker (නව සේවකයෙක්)';
+        document.getElementById('workerId').value = '';
+        document.getElementById('workerDailyRate').value = 4000;
+        document.getElementById('workerOtRate').value = 500;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeWorkerModal() {
+      document.getElementById('workerModal').classList.add('hidden');
+    }
+
+    function autoSuggestOtRate() {
+      const daily = parseFloat(document.getElementById('workerDailyRate').value) || 0;
+      if (daily > 0) {
+        // Standard 8hr day: hourly = daily / 8. OT = hourly * 1.25 rounded to nearest 50
+        const otSuggest = Math.round((daily / 8) * 1.25 / 10) * 10;
+        document.getElementById('workerOtRate').value = otSuggest;
+      }
+    }
+
+    function saveWorker(e) {
+      e.preventDefault();
+      const id = document.getElementById('workerId').value;
+      const name = document.getElementById('workerName').value.trim();
+      const phone = document.getElementById('workerPhone').value.trim();
+      const nic = document.getElementById('workerNic').value.trim();
+      const role = document.getElementById('workerRole').value;
+      const dailyRate = parseFloat(document.getElementById('workerDailyRate').value) || 0;
+      const otRate = parseFloat(document.getElementById('workerOtRate').value) || 0;
+
+      if (!name || dailyRate <= 0) {
+        alert('Please enter valid name and daily rate!');
+        return;
+      }
+
+      if (id) {
+        // Update
+        const index = workers.findIndex(w => w.id === id);
+        if (index !== -1) {
+          workers[index] = { ...workers[index], name, phone, nic, role, dailyRate, otRate };
+        }
+      } else {
+        // Create
+        const newWorker = {
+          id: 'w_' + Date.now(),
+          name,
+          phone,
+          nic,
+          role,
+          dailyRate,
+          otRate,
+          active: true
+        };
+        workers.push(newWorker);
+      }
+
+      saveWorkers();
+      closeWorkerModal();
+      renderAll();
+    }
+
+    function editWorker(workerId) {
+      const worker = workers.find(w => w.id === workerId);
+      if (worker) openWorkerModal(worker);
+    }
+
+    function deleteWorker(workerId) {
+      if (confirm('Are you sure you want to delete this worker? (මෙම සේවකයා ඉවත් කරන්නද?)')) {
+        workers = workers.filter(w => w.id !== workerId);
+        saveWorkers();
+        renderAll();
+      }
+    }
+
+    // DATA BACKUP & RESTORE
+    function exportDataJSON() {
+      const backup = {
+        exportedAt: new Date().toISOString(),
+        version: '1.0',
+        workers,
+        attendance,
+        advances
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const filename = `SiteMaster_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.workers && imported.attendance) {
+            if (confirm('Import backup? This will replace your current device data with the file. (දත්ත Restore කරන්නද?)')) {
+              workers = imported.workers || [];
+              attendance = imported.attendance || {};
+              advances = imported.advances || [];
+              saveWorkers();
+              saveAttendance();
+              saveAdvances();
+              renderAll();
+              alert('Backup restored successfully! (දත්ත සාර්ථකව ප්‍රතිස්ථාපනය විය)');
+            }
+          } else {
+            alert('Invalid backup file format!');
+          }
+        } catch (err) {
+          alert('Error parsing JSON backup file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // Helper: Escaping HTML
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
